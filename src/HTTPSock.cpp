@@ -793,7 +793,7 @@ void CHTTPSock::WriteHardeningHeaders(unsigned int uStatusId) {
     // entirely via OmitHardeningHeader, before PrintHeader runs.
     writeIfWanted("X-Frame-Options", "SAMEORIGIN");
     writeIfWanted("X-Content-Type-Options", "nosniff");
-    writeIfWanted("Referrer-Policy", "same-origin");
+    writeIfWanted("Referrer-Policy", "no-referrer");
 
     // Don't cache authenticated/dynamic responses. Skip for 304 and for
     // static asset MIME types that the ETag/Last-Modified path handles
@@ -804,9 +804,7 @@ void CHTTPSock::WriteHardeningHeaders(unsigned int uStatusId) {
         m_sContentType.StartsWith("text/css") ||
         m_sContentType.StartsWith("application/javascript");
     if (!bStaticLike) {
-        writeIfWanted("Cache-Control",
-                      "no-store, no-cache, must-revalidate, max-age=0");
-        writeIfWanted("Pragma", "no-cache");
+        writeIfWanted("Cache-Control", "no-store");
     }
 }
 

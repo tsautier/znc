@@ -79,8 +79,8 @@ class HTTPSockHeadersTest : public ::testing::Test {
 // Hardening response headers introduced for #2012. The fix's contract:
 // - emit X-Frame-Options, X-Content-Type-Options, Referrer-Policy on every
 //   response (unless the caller already set them or asked to omit them);
-// - emit no-store Cache-Control + Pragma for dynamic responses, but skip
-//   for 304 and for static asset MIME types whose freshness is handled by
+// - emit a no-store Cache-Control for dynamic responses, but skip it for
+//   304 and for static asset MIME types whose freshness is handled by
 //   ETag/Last-Modified;
 // - never duplicate a header the caller already added via AddHeader;
 // - skip a header entirely when the caller calls OmitHardeningHeader.
@@ -89,9 +89,8 @@ TEST_F(HTTPSockHeadersTest, HardeningHeadersDefaultDynamicResponse) {
     sock.PrintHeader(0, "text/html");
     EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("X-Frame-Options: SAMEORIGIN")));
     EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("X-Content-Type-Options: nosniff")));
-    EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("Referrer-Policy: same-origin")));
-    EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("Cache-Control:")));
-    EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("Pragma: no-cache")));
+    EXPECT_THAT(sock.m_vsLines, Contains(CString("Referrer-Policy: no-referrer\r\n")));
+    EXPECT_THAT(sock.m_vsLines, Contains(CString("Cache-Control: no-store\r\n")));
 }
 
 TEST_F(HTTPSockHeadersTest, HardeningHeadersSkipCacheControlOn304) {
@@ -99,7 +98,6 @@ TEST_F(HTTPSockHeadersTest, HardeningHeadersSkipCacheControlOn304) {
     sock.PrintHeader(0, "text/html", 304, "Not Modified");
     EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("X-Frame-Options:")));
     EXPECT_THAT(sock.m_vsLines, Not(Contains(StartsWith("Cache-Control:"))));
-    EXPECT_THAT(sock.m_vsLines, Not(Contains(StartsWith("Pragma:"))));
 }
 
 TEST_F(HTTPSockHeadersTest, HardeningHeadersSkipCacheControlForStaticAssets) {
@@ -128,7 +126,7 @@ TEST_F(HTTPSockHeadersTest, HardeningHeadersDeferToCallerXFrameOptions) {
     EXPECT_THAT(sock.m_vsLines, Contains(CString("X-Frame-Options: DENY\r\n")));
     // Other defaults still emitted.
     EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("X-Content-Type-Options: nosniff")));
-    EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("Referrer-Policy: same-origin")));
+    EXPECT_THAT(sock.m_vsLines, Contains(CString("Referrer-Policy: no-referrer\r\n")));
 }
 
 TEST_F(HTTPSockHeadersTest, HardeningHeadersDeferToCallerCacheControl) {
@@ -138,8 +136,6 @@ TEST_F(HTTPSockHeadersTest, HardeningHeadersDeferToCallerCacheControl) {
     // No no-store default; only the caller's value should be emitted.
     EXPECT_THAT(sock.m_vsLines, Not(Contains(StartsWith("Cache-Control: no-store"))));
     EXPECT_THAT(sock.m_vsLines, Contains(CString("Cache-Control: max-age=300\r\n")));
-    // Pragma is independently controlled and still emitted as a default.
-    EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("Pragma: no-cache")));
 }
 
 TEST_F(HTTPSockHeadersTest, HardeningHeadersOmittedByCaller) {
@@ -152,5 +148,5 @@ TEST_F(HTTPSockHeadersTest, HardeningHeadersOmittedByCaller) {
     EXPECT_THAT(sock.m_vsLines, Not(Contains(StartsWith("Cache-Control:"))));
     // Other defaults unaffected.
     EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("X-Content-Type-Options: nosniff")));
-    EXPECT_THAT(sock.m_vsLines, Contains(StartsWith("Pragma: no-cache")));
+    EXPECT_THAT(sock.m_vsLines, Contains(CString("Referrer-Policy: no-referrer\r\n")));
 }
