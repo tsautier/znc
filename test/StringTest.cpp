@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <znc/ZNCString.h>
+
+using ::testing::ElementsAre;
+using ::testing::IsEmpty;
 
 class EscapeTest : public ::testing::Test {
   protected:
@@ -190,11 +194,11 @@ TEST(StringTest, Split) {
     // element (or zero elements if the input itself is empty).
     VCString vempty;
     EXPECT_EQ(CS("abc").Split("", vempty, false), 1u);
-    EXPECT_EQ(vempty, VCString({"abc"}));
+    EXPECT_THAT(vempty, ElementsAre("abc"));
     EXPECT_EQ(CS("abc").Split("", vempty, true), 1u);
-    EXPECT_EQ(vempty, VCString({"abc"}));
+    EXPECT_THAT(vempty, ElementsAre("abc"));
     EXPECT_EQ(CS("").Split("", vempty, false), 0u);
-    EXPECT_TRUE(vempty.empty());
+    EXPECT_THAT(vempty, IsEmpty());
 }
 
 TEST(StringTest, NamedFormat) {
